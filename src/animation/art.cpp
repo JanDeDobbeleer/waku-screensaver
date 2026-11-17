@@ -18,9 +18,9 @@ void buildChasePath(Art& art) {
       double distance = 0.0;
       if (!art.chasePath.empty()) {
         const size_t previous = art.chasePath.back();
+        const size_t previousRow = previous / columns;
         const double dx = static_cast<double>(column) - static_cast<double>(previous % columns);
-        const double dy =
-            (static_cast<double>(row) - static_cast<double>(previous / columns)) * 1.75;
+        const double dy = (static_cast<double>(row) - static_cast<double>(previousRow)) * 1.75;
         distance = art.chaseDistances.back() + std::hypot(dx, dy);
       }
       art.chaseDistances.push_back(distance);

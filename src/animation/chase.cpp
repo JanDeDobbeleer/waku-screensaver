@@ -34,10 +34,12 @@ RoutePosition routePosition(const Art& art, double progress) {
   const size_t columns = art.columns();
   const size_t first = art.chasePath[firstIndex];
   const size_t second = art.chasePath[secondIndex];
+  const size_t firstRow = first / columns;
+  const size_t secondRow = second / columns;
   const float firstX = static_cast<float>(first % columns) + 0.5f;
-  const float firstY = static_cast<float>(first / columns) + 0.5f;
+  const float firstY = static_cast<float>(firstRow) + 0.5f;
   const float secondX = static_cast<float>(second % columns) + 0.5f;
-  const float secondY = static_cast<float>(second / columns) + 0.5f;
+  const float secondY = static_cast<float>(secondRow) + 0.5f;
   const float x = firstX + (secondX - firstX) * fraction;
   const float y = firstY + (secondY - firstY) * fraction;
   const float tailScale = length > 0.0 ? static_cast<float>(0.6 / length) : 0.0f;
@@ -151,8 +153,9 @@ ParticleFrame chaseParticles(const Frame& input, const Art& art) {
       if (elapsed < 0.0 || elapsed >= 0.22) continue;
       const float age = static_cast<float>(elapsed / 0.22);
       const size_t index = art.chasePath[rank];
+      const size_t row = index / art.columns();
       const float x = static_cast<float>(index % art.columns()) + 0.5f;
-      const float y = static_cast<float>(index / art.columns()) + 0.5f;
+      const float y = static_cast<float>(row) + 0.5f;
       addParticle(result, x + (player.x - x) * age, y + (player.y - y) * age, 0.13f * (1.0f - age),
                   1.0f - age, {1.0f, 0.94f, 0.68f});
     }
