@@ -19,5 +19,16 @@ Cell beamsCell(size_t row, size_t column, const Frame& frame, float entryDistanc
 Cell matrixCell(size_t row, size_t column, const Frame& frame, float entryDistance);
 Cell burnCell(size_t row, size_t column, const Frame& frame, float entryDistance);
 Cell blocksCell(size_t row, size_t column, const Frame& frame, float entryDistance);
+Cell blackholeCell(size_t row, size_t column, const Frame& frame);
+Cell starfieldCell(size_t row, size_t column);
+Cell retroStarsCell(size_t row, size_t column);
+Cell parallaxCell(size_t row, size_t column);
+Cell chaseCell(size_t row, size_t column, const Frame& frame, const Art& art);
+
+ParticleFrame blackholeParticles(const Frame& frame, const Art& art, ParticleViewport viewport);
+ParticleFrame starfieldParticles(const Frame& frame, const Art& art, ParticleViewport viewport);
+ParticleFrame retroStarsParticles(const Frame& frame, const Art& art);
+ParticleFrame parallaxParticles(const Frame& frame, const Art& art);
+ParticleFrame chaseParticles(const Frame& frame, const Art& art);
 
 }  // namespace waku::screensaver

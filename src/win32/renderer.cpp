@@ -57,7 +57,13 @@ void Renderer::render(HWND hwnd, const Frame& frame, const Art& art) {
       brush_->SetColor(D2D1::ColorF(cell.color.red, cell.color.green, cell.color.blue));
       const float x = left + static_cast<float>(column) * cellWidth;
       const float y = top + (static_cast<float>(row) + cell.verticalOffset) * cellHeight;
-      if (cell.character == L'\x2588') {
+      if (cell.character == L'.') {
+        const float radius = cell.radius * cellWidth;
+        target_->FillEllipse(
+            D2D1::Ellipse(D2D1::Point2F(x + cellWidth * 0.5f, y + cellHeight * 0.5f), radius,
+                          radius),
+            brush_.Get());
+      } else if (cell.character == L'\x2588') {
         const bool rainDrop = frame.effect == 0 && cell.verticalOffset < -0.02f;
         if (rainDrop) {
           target_->FillRectangle(D2D1::RectF(x + cellWidth * 0.4f, y + cellHeight * 0.3f,
@@ -69,7 +75,10 @@ void Renderer::render(HWND hwnd, const Frame& frame, const Art& art) {
       } else {
         const unsigned glyphIndex = cell.character >= L'0' && cell.character <= L'9'
                                         ? static_cast<unsigned>(cell.character - L'0')
-                                        : static_cast<unsigned>(cell.character - L'A') + 10U;
+                                    : cell.character >= L'A' && cell.character <= L'Z'
+                                        ? static_cast<unsigned>(cell.character - L'A') + 10U
+                                    : cell.character == L'.' ? 36U
+                                                             : 37U;
         if (glyphIndex >= glyphs_.size()) continue;
         auto& glyph = glyphs_[glyphIndex];
         if (!glyph && FAILED(write_->CreateTextLayout(&cell.character, 1, text_.Get(), cellWidth,
@@ -79,6 +88,22 @@ void Renderer::render(HWND hwnd, const Frame& frame, const Art& art) {
                                 D2D1_DRAW_TEXT_OPTIONS_CLIP);
       }
     }
+  }
+  const ParticleFrame particles = particlesAt(
+      frame, art, {static_cast<float>(width) / cellWidth, static_cast<float>(height) / cellHeight});
+  for (size_t index = 0; index < particles.count; ++index) {
+    const auto& particle = particles.particles[index];
+    const float x = left + particle.x * cellWidth;
+    const float y = top + particle.y * cellHeight;
+    const float radius = std::max(1.0f, particle.radius * cellWidth);
+    brush_->SetColor(D2D1::ColorF(particle.color.red, particle.color.green, particle.color.blue,
+                                  particle.alpha));
+    if (particle.tailX != 0.0f || particle.tailY != 0.0f) {
+      target_->DrawLine(
+          D2D1::Point2F(x - particle.tailX * cellWidth, y - particle.tailY * cellHeight),
+          D2D1::Point2F(x, y), brush_.Get(), std::max(1.0f, radius * 0.65f));
+    }
+    target_->FillEllipse(D2D1::Ellipse(D2D1::Point2F(x, y), radius, radius), brush_.Get());
   }
   if (FAILED(target_->EndDraw())) {
     brush_.Reset();

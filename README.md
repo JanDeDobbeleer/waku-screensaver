@@ -3,11 +3,12 @@
 An experimental, standalone Windows screensaver inspired by Omarchy. It animates WAKU block art
 with rotating text effects. It does not need WAKU, Python, or a terminal.
 
-The prototype cycles through seven effects, inspired by the
+The prototype cycles through twelve effects, inspired by the
 [TerminalTextEffects showroom](https://chrisbuilds.github.io/terminaltexteffects/showroom/):
-rain, decrypt, waves, beams, matrix, burn, and falling blocks. They are native C++ interpretations,
-not exact ports of the original effects. Falling blocks can cross the background; letters and
-numbers appear only within the WAKU lettering.
+rain, decrypt, waves, beams, matrix, burn, falling blocks, a black hole, a perspective starfield,
+retro drifting stars, parallax twinkles, and an original arcade chase. They are native C++
+interpretations, not exact ports of the original effects. Falling blocks can cross the background;
+letters and numbers appear only within the WAKU lettering.
 
 ## Build
 
@@ -67,9 +68,10 @@ Run the accompanying `waku-screensaver.exe --demo` for a windowed demo. Run
 movement exits it. The `.exe` and `.scr` are the same program; Windows may ignore command-line
 arguments passed to a `.scr` through its shell association.
 
-To start the demo with a particular effect, use `waku-screensaver.exe --demo --effect=blocks`.
-The other effect names are `rain`, `decrypt`, `waves`, `beams`, `matrix`, and `burn`. The demo
-continues cycling through effects after the selected one.
+To start the demo with a particular effect, use `waku-screensaver.exe --demo --effect=chase`.
+Other effect names are `rain`, `decrypt`, `waves`, `beams`, `matrix`, `burn`, `blocks`, `blackhole`,
+`starfield`, `retro-stars`, and `parallax`. The demo continues cycling through effects after the
+selected one.
 
 To install, keep the `.scr` in a permanent location, right-click it, and select **Install**. In
 Windows Screen Saver Settings, choose the idle time and, if desired, **On resume, display logon
@@ -86,16 +88,23 @@ including in demo and preview modes. Click **Settings** in Windows Screen Saver 
 ```ini
 [screensaver]
 word=WAKU
-animations=rain,decrypt,waves,beams,matrix,burn,blocks
+animations=rain,decrypt,waves,beams,matrix,burn,blocks,blackhole,starfield,retro-stars,parallax,chase
 ```
 
 `word` accepts up to 32 ASCII letters, digits, and spaces. Lowercase letters become uppercase.
 `WAKU` keeps its original artwork; other words use a seven-row block font and scale to fit.
 
 `animations` is a comma-separated list of the effect names above. Only listed effects run,
-in the specified order, with each lasting nine seconds. A single effect repeats on its own;
+in the specified order. Effects last nine seconds except `chase`, which lasts 28 seconds for WAKU
+and scales up for words wider than WAKU. A single effect repeats on its own;
 duplicate names are ignored. Names and keys are case-sensitive. `--demo --effect=blocks`
 starts with that effect, temporarily adding it if it is not enabled in the file.
+`blackhole` pulls stars inward from across the screen before the lettering reforms;
+`starfield` sends perspective streaks out to the screen edges. Both keep the word centered.
+`retro-stars` drifts layered stars across the word, and `parallax` twinkles stars within the letters.
+`chase` traces the lit pixels at a distance-based speed with two particle runners: one eats centered
+circular dots that shrink into it, the other steadily closes the gap and catches it at the final dot.
+A collision burst then triggers a wave that restores the word.
 
 Missing files or settings use the existing defaults. Invalid values leave that setting at its
 previous valid value (or its default); an empty animation list is invalid. Unknown keys and

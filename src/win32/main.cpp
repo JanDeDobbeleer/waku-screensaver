@@ -293,7 +293,8 @@ int run(HINSTANCE instance, const Arguments& args) {
     if (selected == effects.end()) {
       effects.insert(effects.begin(), *args.effect);
     } else {
-      app.initialOffset_ = (selected - effects.begin()) * kEffectDuration;
+      for (auto current = effects.begin(); current != selected; ++current)
+        app.initialOffset_ += effectDuration(*current, app.art_.columns());
     }
   }
   if (FAILED(D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, app.d2d_.GetAddressOf())))
