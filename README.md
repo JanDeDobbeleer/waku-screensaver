@@ -26,6 +26,24 @@ Run `pwsh -NoProfile -File .\tools\check.ps1 -Architecture arm64` to check forma
 tests. Use `-Architecture x64` for an x64 build. This requires Ninja and clang-format as well as the
 C++ tools. These builds go into `build\<architecture>-release`.
 
+### C++ static analysis
+
+Run MSVC `/analyze` and clang-tidy locally with:
+
+```powershell
+pwsh -NoProfile -File .\tools\check.ps1 -Architecture arm64 -Analyze
+```
+
+Use `-Architecture x64` for x64 analysis. This requires LLVM's clang-tidy in addition to the
+normal build tools. The script checks formatting, then analyzes all production C++ sources
+and their project headers. `.clang-tidy` defines focused correctness, performance, and naming
+checks; findings fail the command.
+
+Analysis uses a clean, isolated `build\<architecture>-release-analyze` directory and writes
+`msvc-analyze.log` and `clang-tidy.log` there. It does not replace the ordinary build and tests.
+CI runs the same analysis command for x64 alongside the x64 and ARM64 build/test jobs and
+uploads analysis logs.
+
 ## Download and release
 
 Download the package for your Windows architecture from

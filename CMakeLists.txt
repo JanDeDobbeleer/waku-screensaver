@@ -1,6 +1,14 @@
 cmake_minimum_required(VERSION 3.24)
 project(waku_screensaver LANGUAGES CXX)
 
+option(WAKU_ANALYZE "Enable MSVC static analysis for production targets" OFF)
+if(WAKU_ANALYZE)
+  if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+    message(FATAL_ERROR "WAKU_ANALYZE requires MSVC")
+  endif()
+  set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+endif()
+
 add_library(screensaver-animation STATIC
   src/config.cpp
   src/animation/art.cpp
@@ -20,6 +28,12 @@ add_executable(waku-screensaver WIN32 src/win32/main.cpp src/win32/renderer.cpp)
 target_compile_definitions(waku-screensaver PRIVATE UNICODE _UNICODE NOMINMAX WIN32_LEAN_AND_MEAN)
 target_compile_options(waku-screensaver PRIVATE /W4 /WX /utf-8)
 target_link_libraries(waku-screensaver PRIVATE screensaver-animation d2d1 dwrite shell32)
+if(WAKU_ANALYZE)
+  foreach(target screensaver-animation waku-screensaver)
+    target_compile_options(${target} PRIVATE /analyze /analyze:external- /external:anglebrackets
+      /external:W0)
+  endforeach()
+endif()
 set_target_properties(waku-screensaver PROPERTIES SUFFIX ".scr")
 add_custom_command(TARGET waku-screensaver POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E copy_if_different
