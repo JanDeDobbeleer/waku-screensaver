@@ -23,7 +23,7 @@ class Renderer {
   Microsoft::WRL::ComPtr<ID2D1HwndRenderTarget> target_;
   Microsoft::WRL::ComPtr<ID2D1SolidColorBrush> brush_;
   Microsoft::WRL::ComPtr<IDWriteTextFormat> text_;
-  std::array<Microsoft::WRL::ComPtr<IDWriteTextLayout>, 36> glyphs_;
+  std::array<Microsoft::WRL::ComPtr<IDWriteTextLayout>, 37> glyphs_;
   float fontSize_ = 0.0f;
 };
 
