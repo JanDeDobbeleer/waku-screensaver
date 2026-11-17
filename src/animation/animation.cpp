@@ -6,13 +6,14 @@
 
 namespace waku::screensaver {
 
-Frame frameAt(double seconds) {
+Frame frameAt(double seconds, std::span<const unsigned> effects, size_t columns) {
   const auto segment = static_cast<unsigned>(seconds / kEffectDuration);
-  return {segment % kEffectCount, segment, seconds, std::fmod(seconds, kEffectDuration)};
+  const auto effect = effects.empty() ? segment % kEffectCount : effects[segment % effects.size()];
+  return {effect, segment, seconds, std::fmod(seconds, kEffectDuration), columns};
 }
 
-Cell cellAt(size_t row, size_t column, const Frame& frame, float entryDistance) {
-  if (row >= kArt.size() || column >= kColumns || kArt[row][column] != L'#')
+Cell cellAt(size_t row, size_t column, const Frame& frame, float entryDistance, const Art& art) {
+  if (row >= art.rows.size() || column >= art.rows[row].size() || art.rows[row][column] != L'#')
     return {L' ', {0.0f, 0.0f, 0.0f}};
   switch (frame.effect) {
     case 0:

@@ -55,10 +55,35 @@ continues cycling through effects after the selected one.
 
 To install, keep the `.scr` in a permanent location, right-click it, and select **Install**. In
 Windows Screen Saver Settings, choose the idle time and, if desired, **On resume, display logon
-screen**. The settings dialog also provides a preview. The prototype does not offer effect
-configuration.
+screen**. The settings dialog also provides a preview.
 
 The screensaver is not a lock screen. Windows controls sign-in on resume and display sleep.
+
+## Configuration
+
+The screensaver reads `%USERPROFILE%\.config\waku\screensaver.ini` once when it starts,
+including in demo and preview modes. Click **Settings** in Windows Screen Saver Settings
+(or run `waku-screensaver.exe /c`) to create the file with defaults and open it in Notepad:
+
+```ini
+[screensaver]
+word=WAKU
+animations=rain,decrypt,waves,beams,matrix,burn,blocks
+```
+
+`word` accepts up to 32 ASCII letters, digits, and spaces. Lowercase letters become uppercase.
+`WAKU` keeps its original artwork; other words use a seven-row block font and scale to fit.
+
+`animations` is a comma-separated list of the effect names above. Only listed effects run,
+in the specified order, with each lasting nine seconds. A single effect repeats on its own;
+duplicate names are ignored. Names and keys are case-sensitive. `--demo --effect=blocks`
+starts with that effect, temporarily adding it if it is not enabled in the file.
+
+Missing files or settings use the existing defaults. Invalid values leave that setting at its
+previous valid value (or its default); an empty animation list is invalid. Unknown keys and
+sections are ignored. Use UTF-8, with optional BOM; lines starting with `;` or `#` are comments.
+Files larger than 16 KiB are ignored. Save changes and restart the screensaver to apply them.
+No Waku installation is required.
 
 ## Code
 

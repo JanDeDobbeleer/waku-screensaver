@@ -11,7 +11,7 @@ void Renderer::resize(unsigned width, unsigned height) {
   if (target_) target_->Resize(D2D1::SizeU(width, height));
 }
 
-void Renderer::render(HWND hwnd, const Frame& frame) {
+void Renderer::render(HWND hwnd, const Frame& frame, const Art& art) {
   RECT rect{};
   if (!GetClientRect(hwnd, &rect)) return;
   const UINT width = static_cast<UINT>(std::max<LONG>(0, rect.right - rect.left));
@@ -29,7 +29,8 @@ void Renderer::render(HWND hwnd, const Frame& frame) {
     }
   }
   const float cellWidth =
-      std::min(static_cast<float>(width) / (kColumns + 14.0f), static_cast<float>(height) / 18.0f);
+      std::min(static_cast<float>(width) / (static_cast<float>(art.columns()) + 14.0f),
+               static_cast<float>(height) / 18.0f);
   const float nextFontSize = std::max(1.0f, cellWidth * 1.8f);
   if (!text_ || std::abs(nextFontSize - fontSize_) > 0.1f) {
     text_.Reset();
@@ -44,14 +45,14 @@ void Renderer::render(HWND hwnd, const Frame& frame) {
     text_->SetWordWrapping(DWRITE_WORD_WRAPPING_NO_WRAP);
   }
   const float cellHeight = cellWidth * (frame.effect == 6 ? 1.0f : 1.75f);
-  const float left = (static_cast<float>(width) - kColumns * cellWidth) / 2.0f;
-  const float top = (static_cast<float>(height) - kArt.size() * cellHeight) / 2.0f;
+  const float left = (static_cast<float>(width) - art.columns() * cellWidth) / 2.0f;
+  const float top = (static_cast<float>(height) - art.rows.size() * cellHeight) / 2.0f;
   target_->BeginDraw();
   target_->Clear(D2D1::ColorF(0.005f, 0.012f, 0.015f));
-  for (size_t row = 0; row < kArt.size(); ++row) {
+  for (size_t row = 0; row < art.rows.size(); ++row) {
     const float entryDistance = top / cellHeight + static_cast<float>(row) + 1.0f;
-    for (size_t column = 0; column < kColumns; ++column) {
-      const Cell cell = cellAt(row, column, frame, entryDistance);
+    for (size_t column = 0; column < art.columns(); ++column) {
+      const Cell cell = cellAt(row, column, frame, entryDistance, art);
       if (cell.character == L' ') continue;
       brush_->SetColor(D2D1::ColorF(cell.color.red, cell.color.green, cell.color.blue));
       const float x = left + static_cast<float>(column) * cellWidth;

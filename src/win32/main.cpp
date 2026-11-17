@@ -2,16 +2,21 @@
 #include <shellapi.h>
 #include <wrl/client.h>
 
+#include <algorithm>
 #include <chrono>
 #include <cmath>
 #include <cstdint>
 #include <cwchar>
 #include <cwctype>
+#include <filesystem>
+#include <fstream>
 #include <memory>
+#include <optional>
 #include <string_view>
 #include <vector>
 
 #include "animation/animation.h"
+#include "config.h"
 #include "win32/renderer.h"
 
 using Microsoft::WRL::ComPtr;
@@ -27,7 +32,7 @@ enum class Mode { Config, Fullscreen, Preview, Demo, SelfTest, Invalid };
 struct Arguments {
   Mode mode = Mode::Config;
   HWND parent = nullptr;
-  unsigned effect = 0;
+  std::optional<unsigned> effect;
 };
 
 Arguments parseArguments(int argc, wchar_t** argv) {
@@ -73,7 +78,37 @@ bool selfTest() {
   wchar_t effect[] = L"--effect=blocks";
   wchar_t* demoArgs[] = {program, demo, effect};
   const auto demoParsed = parseArguments(3, demoArgs);
-  return demoParsed.mode == Mode::Demo && demoParsed.effect == 6;
+  return demoParsed.mode == Mode::Demo && demoParsed.effect == 6U;
+}
+
+std::filesystem::path configPath() {
+  const DWORD size = GetEnvironmentVariableW(L"USERPROFILE", nullptr, 0);
+  if (!size) return {};
+  std::wstring profile(size, L'\0');
+  const DWORD length = GetEnvironmentVariableW(L"USERPROFILE", profile.data(), size);
+  if (!length || length >= size) return {};
+  profile.resize(length);
+  return std::filesystem::path(profile) / L".config" / L"waku" / L"screensaver.ini";
+}
+
+int editConfig(const std::filesystem::path& path) {
+  std::error_code error;
+  if (path.empty()) return 1;
+  std::filesystem::create_directories(path.parent_path(), error);
+  if (error) return 1;
+  const bool exists = std::filesystem::exists(path, error);
+  if (error) return 1;
+  if (!exists) {
+    std::ofstream output(path, std::ios::binary);
+    output << kDefaultConfig;
+    output.close();
+    if (!output) return 1;
+  }
+  const auto parameters = L"\"" + path.wstring() + L"\"";
+  return reinterpret_cast<INT_PTR>(ShellExecuteW(nullptr, L"open", L"notepad.exe",
+                                                 parameters.c_str(), nullptr, SW_SHOWNORMAL)) > 32
+             ? 0
+             : 1;
 }
 
 struct App;
@@ -92,6 +127,8 @@ struct Window {
 };
 
 struct App {
+  Config config_;
+  Art art_;
   ComPtr<ID2D1Factory> d2d_;
   ComPtr<IDWriteFactory> write_;
   std::vector<std::unique_ptr<Window>> windows_;
@@ -109,7 +146,8 @@ struct App {
   Frame frame() const {
     return frameAt(
         initialOffset_ +
-        std::chrono::duration<double>(std::chrono::steady_clock::now() - start_).count());
+            std::chrono::duration<double>(std::chrono::steady_clock::now() - start_).count(),
+        config_.effects, art_.columns());
   }
 };
 
@@ -146,7 +184,7 @@ LRESULT CALLBACK windowProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lpara
         PAINTSTRUCT paint{};
         BeginPaint(hwnd, &paint);
         try {
-          window->renderer_.render(hwnd, window->app_->frame());
+          window->renderer_.render(hwnd, window->app_->frame(), window->app_->art_);
         } catch (...) {
           EndPaint(hwnd, &paint);
           throw;
@@ -243,16 +281,21 @@ BOOL CALLBACK addMonitor(HMONITOR, HDC, LPRECT rect, LPARAM data) {
 int run(HINSTANCE instance, const Arguments& args) {
   if (args.mode == Mode::SelfTest) return selfTest() ? 0 : 1;
   if (args.mode == Mode::Invalid) return 1;
-  if (args.mode == Mode::Config) {
-    MessageBoxW(nullptr,
-                L"WAKU Screensaver is an early prototype. No settings are "
-                L"available yet.",
-                L"WAKU Screensaver", MB_OK | MB_ICONINFORMATION);
-    return 0;
-  }
+  const auto path = configPath();
+  if (args.mode == Mode::Config) return editConfig(path);
   SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
   App app;
-  app.initialOffset_ = args.effect * kEffectDuration;
+  app.config_ = loadConfig(path);
+  app.art_ = makeArt(app.config_.word);
+  if (args.effect) {
+    auto& effects = app.config_.effects;
+    auto selected = std::find(effects.begin(), effects.end(), *args.effect);
+    if (selected == effects.end()) {
+      effects.insert(effects.begin(), *args.effect);
+    } else {
+      app.initialOffset_ = (selected - effects.begin()) * kEffectDuration;
+    }
+  }
   if (FAILED(D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, app.d2d_.GetAddressOf())))
     return 1;
   if (FAILED(DWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(IDWriteFactory),
