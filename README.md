@@ -1,0 +1,67 @@
+# WAKU Screensaver
+
+An experimental, standalone Windows screensaver inspired by Omarchy. It animates WAKU block art
+with rotating text effects. It does not need WAKU, Python, or a terminal.
+
+The prototype cycles through seven effects, inspired by the
+[TerminalTextEffects showroom](https://chrisbuilds.github.io/terminaltexteffects/showroom/):
+rain, decrypt, waves, beams, matrix, burn, and falling blocks. They are native C++ interpretations,
+not exact ports of the original effects. Falling blocks can cross the background; letters and
+numbers appear only within the WAKU lettering.
+
+## Build
+
+Requires Visual Studio 2022 C++ tools, the Windows SDK, and CMake:
+
+```powershell
+cmake -S . -B build
+cmake --build build --config Release
+ctest --test-dir build -C Release --output-on-failure
+```
+
+The result is `build\Release\waku-screensaver.scr`, or `build\waku-screensaver.scr` with a
+single-configuration generator such as Ninja. A build must target the intended Windows architecture.
+
+Run `pwsh -NoProfile -File .\tools\check.ps1 -Architecture arm64` to check formatting, build, and run
+tests. Use `-Architecture x64` for an x64 build. This requires Ninja and clang-format as well as the
+C++ tools. These builds go into `build\<architecture>-release`.
+
+## Download and release
+
+Download the package for your Windows architecture from
+[Releases](https://github.com/JanDeDobbeleer/waku-screensaver/releases). Release ZIPs contain the
+signed `.scr`, the identical signed `.exe`, this README, and the MIT license. Ordinary CI artifacts
+are unsigned.
+
+Maintainers must configure the repository secrets `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET`, and
+`AZURE_TENANT_ID`. The release workflow uses the same Azure Trusted Signing account and certificate
+profile as WAKU. Signing is mandatory for releases and fails if credentials are missing or signature
+verification fails.
+
+To publish, push a `v<major>.<minor>.<patch>` tag. Alternatively, run the **release** workflow from
+`main`, enter a version without `v`, and enable **publish**. Leave **publish** unchecked to build
+signed artifacts without creating a release.
+
+## Try it
+
+Run the accompanying `waku-screensaver.exe --demo` for a windowed demo. Run
+`waku-screensaver.exe /s` for the full-screen screensaver; a key press, mouse click, or mouse
+movement exits it. The `.exe` and `.scr` are the same program; Windows may ignore command-line
+arguments passed to a `.scr` through its shell association.
+
+To start the demo with a particular effect, use `waku-screensaver.exe --demo --effect=blocks`.
+The other effect names are `rain`, `decrypt`, `waves`, `beams`, `matrix`, and `burn`. The demo
+continues cycling through effects after the selected one.
+
+To install, keep the `.scr` in a permanent location, right-click it, and select **Install**. In
+Windows Screen Saver Settings, choose the idle time and, if desired, **On resume, display logon
+screen**. The settings dialog also provides a preview. The prototype does not offer effect
+configuration.
+
+The screensaver is not a lock screen. Windows controls sign-in on resume and display sleep.
+
+## Code
+
+The animation module computes frames without Windows dependencies. Each effect has its own source
+file. The Windows application owns window lifecycle and uses a separate Direct2D renderer. Effects
+that have settled pause redraws until the next transition.

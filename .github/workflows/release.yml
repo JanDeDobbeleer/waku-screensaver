@@ -1,0 +1,95 @@
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version without v, for example 0.1.0"
+        required: true
+        type: string
+      publish:
+        description: "Publish a GitHub release (otherwise only upload signed artifacts)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.version.outputs.tag }}
+      publish: ${{ steps.version.outputs.publish }}
+    steps:
+      - name: Validate release version
+        id: version
+        shell: pwsh
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+          INPUT_PUBLISH: ${{ inputs.publish }}
+        run: |
+          if ($env:GITHUB_EVENT_NAME -eq 'push') {
+            $version = $env:GITHUB_REF_NAME -replace '^v', ''
+            $publish = 'true'
+          } else {
+            if ($env:GITHUB_REF -ne 'refs/heads/main') {
+              throw 'Manual releases must run from main.'
+            }
+            $version = $env:INPUT_VERSION
+            $publish = $env:INPUT_PUBLISH
+          }
+          if ($version -notmatch '^\d+\.\d+\.\d+$') {
+            throw 'Version must be major.minor.patch.'
+          }
+          "tag=v$version" >> $env:GITHUB_OUTPUT
+          "publish=$publish" >> $env:GITHUB_OUTPUT
+
+  build:
+    needs: version
+    uses: ./.github/workflows/build.yml
+    with:
+      sign: true
+    secrets:
+      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+
+  release:
+    needs: [version, build]
+    if: needs.version.outputs.publish == 'true'
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: package-*
+          merge-multiple: true
+          path: release
+
+      - name: Publish signed packages
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ needs.version.outputs.tag }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
+          $packages = @(Get-ChildItem -LiteralPath 'release' -Filter '*.zip')
+          if ($packages.Count -ne 2) { throw 'Expected x64 and ARM64 packages.' }
+          $checksums = foreach ($package in $packages) {
+            $hash = (Get-FileHash -LiteralPath $package.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+            "$hash  $($package.Name)"
+          }
+          $checksums | Set-Content -LiteralPath 'release\checksums.txt' -Encoding utf8NoBOM
+          $assets = @($packages.FullName) + @('release\checksums.txt')
+          gh release create $env:RELEASE_TAG @assets --repo $env:GITHUB_REPOSITORY --target $env:GITHUB_SHA --title "WAKU Screensaver $env:RELEASE_TAG" --generate-notes

@@ -1,0 +1,25 @@
+BasedOnStyle: Google
+Language: Cpp
+Standard: Latest
+ColumnLimit: 100
+IndentWidth: 2
+SortIncludes: CaseSensitive
+IncludeBlocks: Regroup
+PointerAlignment: Left
+LineEnding: CRLF
+IncludeCategories:
+  - Regex: '^<windows\.h>$'
+    Priority: 1
+    SortPriority: 1
+  - Regex: '^<ext/.*\.h>'
+    Priority: 2
+    SortPriority: 3
+  - Regex: '^<.*\.h>'
+    Priority: 1
+    SortPriority: 2
+  - Regex: '^<.*'
+    Priority: 2
+    SortPriority: 3
+  - Regex: '.*'
+    Priority: 3
+    SortPriority: 4
