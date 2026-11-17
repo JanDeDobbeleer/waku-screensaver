@@ -6,7 +6,7 @@
 namespace waku::screensaver {
 
 Cell beamsCell(size_t row, size_t column, const Frame& frame, float) {
-  const double position = std::fmod(frame.progress / 3.0, 1.0) * (kColumns + 8.0) - 4.0;
+  const double position = std::fmod(frame.progress / 3.0, 1.0) * (frame.columns + 8.0) - 4.0;
   const double vertical = std::fmod(frame.progress / 2.2, 1.0) * 11.0 - 2.0;
   const float horizontalGlow = static_cast<float>(
       std::max(0.0, 1.0 - std::abs(static_cast<double>(column) - position) / 5.0));

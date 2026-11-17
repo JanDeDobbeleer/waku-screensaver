@@ -3,7 +3,10 @@
 namespace waku::screensaver {
 
 Cell burnCell(size_t row, size_t column, const Frame& frame, float) {
-  const double elapsed = frame.progress - column * 0.08 - row * 0.12;
+  const double columnDelay =
+      column * 0.08 *
+      (frame.columns > kColumns ? static_cast<double>(kColumns) / frame.columns : 1.0);
+  const double elapsed = frame.progress - columnDelay - row * 0.12;
   if (elapsed < 0.0) return {L'\x2588', {0.3f, 0.27f, 0.27f}};
   if (elapsed < 0.4) return {L'\x2588', {1.0f, 0.95f, 0.6f}};
   if (elapsed < 1.6) {

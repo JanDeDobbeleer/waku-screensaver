@@ -5,7 +5,7 @@
 namespace waku::screensaver {
 
 Cell rainCell(size_t row, size_t column, const Frame& frame, float entryDistance) {
-  const uint32_t seed = hash(static_cast<uint32_t>(row * kColumns + column));
+  const uint32_t seed = hash(static_cast<uint32_t>(row * frame.columns + column));
   const double delay = (seed % 4000U) / 1000.0;
   const double duration = 1.1 + (seed % 800U) / 1000.0;
   if (frame.progress < delay) return {L' ', {0.0f, 0.0f, 0.0f}};

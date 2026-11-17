@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.24)
 project(waku_screensaver LANGUAGES CXX)
 
 add_library(screensaver-animation STATIC
+  src/config.cpp
+  src/animation/art.cpp
   src/animation/animation.cpp
   src/animation/rain.cpp
   src/animation/decrypt.cpp

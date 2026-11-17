@@ -7,7 +7,7 @@ namespace waku::screensaver {
 
 Cell blocksCell(size_t row, size_t column, const Frame& frame, float entryDistance) {
   entryDistance -= static_cast<float>(row % 2);
-  const uint32_t seed = hash(static_cast<uint32_t>((row / 2) * kColumns + column / 2));
+  const uint32_t seed = hash(static_cast<uint32_t>((row / 2) * frame.columns + column / 2));
   const double delay =
       (3 - row / 2) * 1.5 + (hash(static_cast<uint32_t>(column / 2)) % 400U) / 1000.0;
   if (frame.progress < delay) return {L' ', {0.0f, 0.0f, 0.0f}};

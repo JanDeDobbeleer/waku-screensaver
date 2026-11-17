@@ -15,7 +15,7 @@ class Renderer {
  public:
   Renderer(ID2D1Factory* d2d, IDWriteFactory* write);
   void resize(unsigned width, unsigned height);
-  void render(HWND hwnd, const Frame& frame);
+  void render(HWND hwnd, const Frame& frame, const Art& art);
 
  private:
   ID2D1Factory* d2d_;
