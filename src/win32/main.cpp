@@ -32,7 +32,7 @@ enum class Mode { Config, Fullscreen, Preview, Demo, SelfTest, Invalid };
 struct Arguments {
   Mode mode = Mode::Config;
   HWND parent = nullptr;
-  std::optional<unsigned> effect;
+  std::optional<unsigned> effect = std::nullopt;
 };
 
 Arguments parseArguments(int argc, wchar_t** argv) {
@@ -335,7 +335,7 @@ int run(HINSTANCE instance, const Arguments& args) {
 }  // namespace
 }  // namespace waku::screensaver
 
-int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int) {
+int WINAPI wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE, _In_ PWSTR, _In_ int) {
   try {
     int argc = 0;
     wchar_t** argv = CommandLineToArgvW(GetCommandLineW(), &argc);
