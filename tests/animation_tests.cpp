@@ -209,6 +209,33 @@ int main() {
       check(reachX > 0.85f && reachY > 0.85f,
             "blackhole and starfield reach screen edges in landscape and portrait");
     }
+    for (const Art& art : {defaultArt(), makeArt("I"), makeArt("FULLSCREEN STARS")}) {
+      const float left = (static_cast<float>(art.columns()) - viewport.width) * 0.5f;
+      const float top = (static_cast<float>(art.rows.size()) - viewport.height) * 0.5f;
+      for (double progress : {0.0, 4.5, 8.9}) {
+        const Frame frame{kRetroStarsEffect, 0, progress, progress};
+        const auto particles = particlesAt(frame, art, viewport);
+        float minX = viewport.width;
+        float maxX = 0.0f;
+        float minY = viewport.height;
+        float maxY = 0.0f;
+        for (size_t index = 0; index < particles.count; ++index) {
+          const auto& particle = particles.particles[index];
+          const float x = particle.x - left;
+          const float y = particle.y - top;
+          check(x >= -0.0001f && x <= viewport.width + 0.0001f && y >= -0.0001f &&
+                    y <= viewport.height + 0.0001f,
+                "retro stars wrap within the centered viewport");
+          minX = std::min(minX, x);
+          maxX = std::max(maxX, x);
+          minY = std::min(minY, y);
+          maxY = std::max(maxY, y);
+        }
+        check(minX < viewport.width * 0.1f && maxX > viewport.width * 0.9f &&
+                  minY < viewport.height * 0.1f && maxY > viewport.height * 0.9f,
+              "retro stars fill landscape and portrait viewports regardless of word width");
+      }
+    }
   }
   const Frame twinkles{kParallaxEffect, 0, 1.0, 1.0};
   const auto localTwinkles = particlesAt(twinkles);

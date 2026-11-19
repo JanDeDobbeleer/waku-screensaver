@@ -27,7 +27,7 @@ Cell chaseCell(size_t row, size_t column, const Frame& frame, const Art& art);
 
 ParticleFrame blackholeParticles(const Frame& frame, const Art& art, ParticleViewport viewport);
 ParticleFrame starfieldParticles(const Frame& frame, const Art& art, ParticleViewport viewport);
-ParticleFrame retroStarsParticles(const Frame& frame, const Art& art);
+ParticleFrame retroStarsParticles(const Frame& frame, const Art& art, ParticleViewport viewport);
 ParticleFrame parallaxParticles(const Frame& frame, const Art& art);
 ParticleFrame chaseParticles(const Frame& frame, const Art& art);
 

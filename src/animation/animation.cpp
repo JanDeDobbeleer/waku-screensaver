@@ -74,7 +74,7 @@ ParticleFrame particlesAt(const Frame& frame, const Art& art, ParticleViewport v
     case kStarfieldEffect:
       return starfieldParticles(frame, art, viewport);
     case kRetroStarsEffect:
-      return retroStarsParticles(frame, art);
+      return retroStarsParticles(frame, art, viewport);
     case kParallaxEffect:
       return parallaxParticles(frame, art);
     case kChaseEffect:
