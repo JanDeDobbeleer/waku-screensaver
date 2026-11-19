@@ -101,7 +101,8 @@ duplicate names are ignored. Names and keys are case-sensitive. `--demo --effect
 starts with that effect, temporarily adding it if it is not enabled in the file.
 `blackhole` pulls stars inward from across the screen before the lettering reforms;
 `starfield` sends perspective streaks out to the screen edges. Both keep the word centered.
-`retro-stars` drifts layered stars across the word, and `parallax` twinkles stars within the letters.
+`retro-stars` drifts layered stars across the full screen, and `parallax` twinkles stars within the
+letters.
 `chase` traces the lit pixels at a distance-based speed with two particle runners: one eats centered
 circular dots that shrink into it, the other steadily closes the gap and catches it at the final dot.
 A collision burst then triggers a wave that restores the word.

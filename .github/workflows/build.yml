@@ -23,7 +23,7 @@ permissions:
 jobs:
   analyze:
     name: C++ static analysis
-    runs-on: windows-latest
+    runs-on: windows-2022
     defaults:
       run:
         shell: pwsh
