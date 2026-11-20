@@ -24,7 +24,8 @@ add_library(screensaver-animation STATIC
   src/animation/starfield.cpp
   src/animation/retro_stars.cpp
   src/animation/parallax.cpp
-  src/animation/chase.cpp)
+  src/animation/chase.cpp
+  src/animation/chase_maze.cpp)
 target_include_directories(screensaver-animation PUBLIC src)
 target_compile_features(screensaver-animation PUBLIC cxx_std_23)
 target_compile_options(screensaver-animation PRIVATE /W4 /WX /utf-8)
