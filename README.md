@@ -57,9 +57,9 @@ Maintainers must configure the repository secrets `AZURE_CLIENT_ID`, `AZURE_CLIE
 profile as WAKU. Signing is mandatory for releases and fails if credentials are missing or signature
 verification fails.
 
-To publish, push a `v<major>.<minor>.<patch>` tag. Alternatively, run the **release** workflow from
-`main`, enter a version without `v`, and enable **publish**. Leave **publish** unchecked to build
-signed artifacts without creating a release.
+Each push to `main`, including a merged pull request, publishes a signed release with the next
+patch version (for example, `v0.2.0` becomes `v0.2.1`). A commit that already has a version tag is
+not bumped again.
 
 ## Try it
 
