@@ -25,6 +25,9 @@ Cell retroStarsCell(size_t row, size_t column);
 Cell parallaxCell(size_t row, size_t column);
 Cell chaseCell(size_t row, size_t column, const Frame& frame, const Art& art);
 
+void buildChaseMaze(Art& art);
+ChaseScene chaseScene(const Frame& frame, const Art& art);
+
 ParticleFrame blackholeParticles(const Frame& frame, const Art& art, ParticleViewport viewport);
 ParticleFrame starfieldParticles(const Frame& frame, const Art& art, ParticleViewport viewport);
 ParticleFrame retroStarsParticles(const Frame& frame, const Art& art, ParticleViewport viewport);

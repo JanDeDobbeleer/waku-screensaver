@@ -29,11 +29,39 @@ inline constexpr unsigned kChaseEffect = 11;
 inline constexpr double kEffectDuration = 9.0;
 inline constexpr unsigned kFrameIntervalMs = 33;
 
+inline constexpr uint32_t kNoNode = 0xFFFFFFFFU;
+
+inline constexpr uint8_t kLetterNode = 0;
+inline constexpr uint8_t kTunnelNode = 1;
+inline constexpr uint8_t kHouseNode = 2;
+
+// The word is a maze: letter cells are corridors, carved tunnels join separate letters.
+struct ChaseMaze {
+  struct Node {
+    int x;
+    int y;
+    uint8_t kind;
+  };
+  struct Wall {
+    float x0;
+    float y0;
+    float x1;
+    float y1;
+    bool dim;
+  };
+  std::vector<Node> nodes;
+  std::vector<uint32_t> cellNode;   // row * columns + column of the art, kNoNode if unlit
+  std::vector<uint32_t> pacWalk;    // node per step; every step moves to a 4-neighbour
+  std::vector<float> pacTime;       // cumulative cost per step, 1.0 horizontal and 1.75 vertical
+  std::vector<uint32_t> ghostWalk;  // node per step of pacWalk[0..feastSteps]
+  std::vector<float> eatTime;       // per node, pacTime when first visited, infinity if never
+  size_t feastSteps = 0;            // pacWalk[feastSteps] is the power pellet
+  std::vector<Wall> walls;
+};
+
 struct Art {
   std::array<std::wstring, 7> rows;
-  std::vector<size_t> chasePath;
-  std::vector<size_t> chaseRank;
-  std::vector<double> chaseDistances;
+  ChaseMaze chase;
   size_t columns() const { return rows[0].size(); }
 };
 
@@ -66,6 +94,25 @@ struct ParticleViewport {
   float height = 0.0f;
 };
 
+struct ChaseSprite {
+  float x = 0.0f;
+  float y = 0.0f;
+  float dirX = 1.0f;
+  float dirY = 0.0f;
+  float phase = 0.0f;  // pacman: mouth openness 0..1, ghost: skirt wobble 0..1
+  bool visible = false;
+  bool scared = false;
+  bool flash = false;
+};
+
+struct ChaseScene {
+  bool active = false;
+  float cursor = -1.0f;  // pacTime units; compare against ChaseMaze::eatTime
+  float wallAlpha = 0.0f;
+  ChaseSprite pacman;
+  ChaseSprite ghost;
+};
+
 struct Cell {
   wchar_t character;
   Color color;
@@ -87,6 +134,7 @@ Cell cellAt(size_t row, size_t column, const Frame& frame, float entryDistance =
             const Art& art = defaultArt());
 ParticleFrame particlesAt(const Frame& frame, const Art& art = defaultArt(),
                           ParticleViewport viewport = {});
+ChaseScene chaseSceneAt(const Frame& frame, const Art& art = defaultArt());
 unsigned nextFrameDelay(const Frame& frame);
 
 }  // namespace waku::screensaver

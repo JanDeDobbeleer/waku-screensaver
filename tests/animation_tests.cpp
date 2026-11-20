@@ -69,19 +69,50 @@ int main() {
     check(row.size() == customArt.columns(), "custom art uniform rows");
     check(row.substr(30, 5) == L"     ", "custom art space");
   }
-  size_t litCells = 0;
-  for (size_t row = 0; row < customArt.rows.size(); ++row) {
-    for (size_t column = 0; column < customArt.columns(); ++column) {
-      if (customArt.rows[row][column] == L'#') {
-        const size_t index = row * customArt.columns() + column;
-        const size_t rank = customArt.chaseRank[index];
-        check(rank < customArt.chasePath.size() && customArt.chasePath[rank] == index,
-              "chase route covers each lit cell");
-        ++litCells;
+  const auto checkMaze = [&](const Art& art, const char* label) {
+    const auto& maze = art.chase;
+    size_t lit = 0;
+    for (size_t row = 0; row < art.rows.size(); ++row) {
+      for (size_t column = 0; column < art.columns(); ++column) {
+        if (art.rows[row][column] != L'#') continue;
+        ++lit;
+        const uint32_t node = maze.cellNode[row * art.columns() + column];
+        check(node != kNoNode && maze.nodes[node].kind == kLetterNode &&
+                  maze.nodes[node].x == static_cast<int>(column) &&
+                  maze.nodes[node].y == static_cast<int>(row) && std::isfinite(maze.eatTime[node]),
+              label);
       }
     }
-  }
-  check(customArt.chasePath.size() == litCells, "chase route covers all lit cells once");
+    const auto adjacent = [&](uint32_t a, uint32_t b) {
+      return std::abs(maze.nodes[a].x - maze.nodes[b].x) +
+                 std::abs(maze.nodes[a].y - maze.nodes[b].y) ==
+             1;
+    };
+    for (size_t step = 1; step < maze.pacWalk.size(); ++step) {
+      check(adjacent(maze.pacWalk[step - 1], maze.pacWalk[step]),
+            "pacman only moves to a neighbouring cell");
+      const float cost = maze.pacTime[step] - maze.pacTime[step - 1];
+      check(cost == 1.0f || cost == 1.75f, "pacman step cost follows the display aspect ratio");
+    }
+    for (size_t step = 0; step <= maze.feastSteps; ++step) {
+      if (step > 0)
+        check(maze.ghostWalk[step] == maze.ghostWalk[step - 1] ||
+                  adjacent(maze.ghostWalk[step - 1], maze.ghostWalk[step]),
+              "ghost only moves to a neighbouring cell");
+      const auto& p = maze.nodes[maze.pacWalk[step]];
+      const auto& g = maze.nodes[maze.ghostWalk[step]];
+      check(std::abs(p.x - g.x) + std::abs(p.y - g.y) >= 2, "ghost never touches pacman");
+      if (step < maze.feastSteps)
+        check(maze.nodes[maze.pacWalk[step]].kind != kHouseNode,
+              "pacman never enters the ghost house during the feast");
+    }
+    check(maze.feastSteps <= 3 * lit, "pacman sweep stays efficient");
+    check(!maze.walls.empty(), "maze has walls");
+  };
+  checkMaze(customArt, "custom chase maze covers each lit cell");
+  checkMaze(defaultArt(), "default chase maze covers each lit cell");
+  check(makeArt("").chase.pacWalk.empty() && makeArt("  ").chase.nodes.empty(),
+        "empty word has no maze");
   for (unsigned segment = 0; segment < 8; ++segment)
     check(frameAt(segment * kEffectDuration, configured.effects).effect ==
               configured.effects[segment % configured.effects.size()],
@@ -264,88 +295,54 @@ int main() {
   check(effectDuration(kChaseEffect, longArt.columns()) > chaseDuration &&
             effectDuration(0, longArt.columns()) == kEffectDuration,
         "wide words extend only chase timing");
+  checkMaze(longArt, "wide chase maze covers each lit cell");
+  const Art& art = defaultArt();
+  const auto& maze = art.chase;
   const auto chaseStart = chaseFrame(0.0);
   check(cellAt(0, 0, chaseStart).character == L'.', "chase starts with dots across the word");
   check(cellAt(6, 34, chaseStart).character == L'.', "chase starts with dots across the word");
-  check(particlesAt(chaseFrame(1.0)).count >= 3, "chase player has a particle trail");
-  check(particlesAt(chaseFrame(2.5)).count >= 6, "chaser joins the route");
-  const auto chaseEnd = chaseFrame(5.1);
-  check(cellAt(0, 0, chaseEnd).character == L' ', "chase removes eaten dots");
-  Art straight;
-  for (auto& row : straight.rows) row = L"    ";
-  straight.rows[0] = L"####";
-  straight.chasePath = {0, 1, 2, 3};
-  straight.chaseDistances = {0.0, 1.0, 2.0, 3.0};
-  straight.chaseRank.assign(28, 0);
-  double previousGap = 4.0;
-  float previousPlayerX = 0.0f;
-  for (double phase : {2.2, 3.0, 4.0, 4.9, 4.999}) {
-    const auto runners = particlesAt(chaseFrame(phase, straight), straight);
-    check(runners.count >= 6, "both runners remain visible until the catch");
-    const auto& player = runners.particles[0];
-    const auto& pursuer = runners.particles[3];
-    const double gap = static_cast<double>(player.x - pursuer.x);
-    check(gap >= 0.0 && gap < previousGap && player.x > previousPlayerX,
-          "pursuer closes the gap while the player is still moving");
-    previousGap = gap;
-    previousPlayerX = player.x;
+  check(particlesAt(chaseStart).count == 0 && particlesAt(chaseFrame(3.0)).count == 0,
+        "runners are sprites without trails");
+  const auto early = chaseSceneAt(chaseFrame(0.2));
+  check(early.active && early.pacman.visible && early.ghost.visible && !early.ghost.scared,
+        "pacman and ghost wait for the run");
+  const auto midway = chaseSceneAt(chaseFrame(3.0));
+  check(midway.pacman.visible && midway.ghost.visible && !midway.ghost.scared &&
+            std::abs(midway.pacman.dirX) + std::abs(midway.pacman.dirY) == 1.0f,
+        "pacman faces along an axis during the feast");
+  check(chaseSceneAt(Frame{2, 0, 1.0, 1.0}).active == false, "other effects have no chase scene");
+  // Dots vanish exactly when pacman arrives.
+  const size_t probe = maze.pacWalk.size() / 3;
+  const uint32_t probeNode = maze.pacWalk[probe];
+  if (maze.nodes[probeNode].kind == kLetterNode) {
+    const double arrival = (0.5 + maze.eatTime[probeNode] / maze.pacTime[maze.feastSteps] * 5.456) *
+                           chaseDuration / kEffectDuration;
+    const auto& at = maze.nodes[probeNode];
+    const auto row = static_cast<size_t>(at.y);
+    const auto column = static_cast<size_t>(at.x);
+    const auto before = cellAt(row, column, frameAt(arrival - 0.05, chaseOnly));
+    check(before.character == L'.' && before.radius > 0.1f, "dot keeps its size until eaten");
+    check(cellAt(row, column, frameAt(arrival + 0.05, chaseOnly)).character == L' ',
+          "dot disappears when pacman reaches it");
+    const auto scene = chaseSceneAt(frameAt(arrival, chaseOnly));
+    check(std::abs(scene.pacman.x - (static_cast<float>(at.x) + 0.5f)) < 0.02f &&
+              std::abs(scene.pacman.y - (static_cast<float>(at.y) + 0.5f)) < 0.02f,
+          "pacman is on the dot when it is eaten");
   }
-  check(previousGap < 0.001, "pursuer reaches the player before the collision burst");
-  const auto collision = chaseFrame(5.1);
-  check(particlesAt(collision).count == 24, "chaser collision produces a burst");
-  const auto restored = chaseFrame(7.6);
-  check(cellAt(0, 0, restored).character == L'\x2588',
-        "chase shockwave restores the word after the collision");
-  const auto longChase = particlesAt(chaseFrame(2.5, longArt), longArt);
-  check(longChase.count >= 6, "chase supports custom word paths");
-  const Art& art = defaultArt();
-  const size_t rank = art.chasePath.size() / 2;
-  const size_t dot = art.chasePath[rank];
-  const double arrival = (0.6 + art.chaseDistances[rank] / art.chaseDistances.back() * 4.4) *
-                         chaseDuration / kEffectDuration;
-  const auto dotBefore =
-      cellAt(dot / art.columns(), dot % art.columns(), frameAt(arrival - 0.25, chaseOnly));
-  const auto dotShrinking =
-      cellAt(dot / art.columns(), dot % art.columns(), frameAt(arrival - 0.08, chaseOnly));
-  check(dotBefore.character == L'.' && dotShrinking.character == L'.' &&
-            dotBefore.radius > dotShrinking.radius && dotShrinking.radius > 0.0f,
-        "centered dots shrink over multiple frames before being eaten");
-  check(cellAt(dot / art.columns(), dot % art.columns(), frameAt(arrival + 0.01, chaseOnly))
-                .character == L' ',
-        "dot disappears when the player reaches it");
-  const auto swallowed = particlesAt(frameAt(arrival + 0.15, chaseOnly));
-  bool eatingVisible = false;
-  for (size_t index = 0; index < swallowed.count; ++index)
-    eatingVisible = eatingVisible || (swallowed.particles[index].color.green == 0.94f &&
-                                      swallowed.particles[index].alpha > 0.0f);
-  check(eatingVisible, "eating animation remains visible beyond a single frame");
-  for (size_t index = 1; index < art.chasePath.size(); ++index) {
-    const size_t previous = art.chasePath[index - 1];
-    const size_t current = art.chasePath[index];
-    const double length = std::hypot(static_cast<double>(current % art.columns()) -
-                                         static_cast<double>(previous % art.columns()),
-                                     (static_cast<double>(current / art.columns()) -
-                                      static_cast<double>(previous / art.columns())) *
-                                         1.75);
-    check(std::abs(art.chaseDistances[index] - art.chaseDistances[index - 1] - length) < 0.0001,
-          "route distance accounts for gaps and display aspect ratio");
-    if (length > 2.0) {
-      const double midpoint = (art.chaseDistances[index] + art.chaseDistances[index - 1]) * 0.5;
-      const double time =
-          (0.6 + midpoint / art.chaseDistances.back() * 4.4) * chaseDuration / kEffectDuration;
-      const auto crossing = particlesAt(frameAt(time, chaseOnly));
-      const float expectedX = (static_cast<float>(current % art.columns()) +
-                               static_cast<float>(previous % art.columns())) *
-                                  0.5f +
-                              0.5f;
-      const float expectedY = (static_cast<float>(current / art.columns()) +
-                               static_cast<float>(previous / art.columns())) *
-                                  0.5f +
-                              0.5f;
-      check(crossing.count >= 3 && std::abs(crossing.particles[0].x - expectedX) < 0.001f &&
-                std::abs(crossing.particles[0].y - expectedY) < 0.001f,
-            "runner crosses long gaps smoothly using actual distance");
-    }
-  }
+  const double pelletPhase = 0.5 + 5.456;
+  check(!chaseSceneAt(chaseFrame(pelletPhase - 0.05)).ghost.scared &&
+            chaseSceneAt(chaseFrame(pelletPhase + 0.05)).ghost.scared,
+        "power pellet frightens the ghost");
+  const auto caught = chaseSceneAt(chaseFrame(6.69));
+  check(std::abs(caught.pacman.x - caught.ghost.x) < 0.2f &&
+            std::abs(caught.pacman.y - caught.ghost.y) < 0.2f,
+        "pacman catches the ghost");
+  check(cellAt(0, 0, chaseFrame(6.6)).character == L' ', "chase removes eaten dots");
+  check(particlesAt(chaseFrame(6.9)).count == 24, "catching the ghost produces a burst");
+  check(!chaseSceneAt(chaseFrame(6.9)).pacman.visible, "runners vanish with the burst");
+  check(cellAt(0, 0, chaseFrame(8.7)).character == L'\x2588',
+        "chase shockwave restores the word after the catch");
+  check(chaseSceneAt(chaseFrame(2.0, longArt), longArt).pacman.visible,
+        "chase supports custom word mazes");
   return failures ? 1 : 0;
 }

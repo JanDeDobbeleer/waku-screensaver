@@ -1,42 +1,11 @@
-#include <cmath>
-
-#include "animation/animation.h"
+#include "animation/effect_internal.h"
 
 namespace waku::screensaver {
-namespace {
-
-void buildChasePath(Art& art) {
-  const size_t columns = art.columns();
-  art.chasePath.clear();
-  art.chaseDistances.clear();
-  art.chaseRank.assign(columns * art.rows.size(), 0);
-  for (size_t column = 0; column < columns; ++column) {
-    for (size_t step = 0; step < art.rows.size(); ++step) {
-      const size_t row = column % 2 == 0 ? step : art.rows.size() - step - 1;
-      if (column >= art.rows[row].size() || art.rows[row][column] != L'#') continue;
-      const size_t index = row * columns + column;
-      double distance = 0.0;
-      if (!art.chasePath.empty()) {
-        const size_t previous = art.chasePath.back();
-        const size_t previousRow = previous / columns;
-        const double dx = static_cast<double>(column) - static_cast<double>(previous % columns);
-        const double dy = (static_cast<double>(row) - static_cast<double>(previousRow)) * 1.75;
-        distance = art.chaseDistances.back() + std::hypot(dx, dy);
-      }
-      art.chaseDistances.push_back(distance);
-      art.chaseRank[index] = art.chasePath.size();
-      art.chasePath.push_back(index);
-    }
-  }
-}
-
-}  // namespace
-
 const Art& defaultArt() {
   static const Art art = [] {
     Art result;
     for (size_t row = 0; row < kArt.size(); ++row) result.rows[row] = kArt[row];
-    buildChasePath(result);
+    buildChaseMaze(result);
     return result;
   }();
   return art;
@@ -70,7 +39,7 @@ Art makeArt(std::string_view word) {
         line += (letter || digit) && (glyphs[index][row] & (1U << (4 - column))) ? L'#' : L' ';
     }
   }
-  buildChasePath(art);
+  buildChaseMaze(art);
   return art;
 }
 

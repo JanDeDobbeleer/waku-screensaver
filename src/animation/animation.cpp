@@ -84,6 +84,10 @@ ParticleFrame particlesAt(const Frame& frame, const Art& art, ParticleViewport v
   }
 }
 
+ChaseScene chaseSceneAt(const Frame& frame, const Art& art) {
+  return frame.effect == kChaseEffect ? chaseScene(frame, art) : ChaseScene{};
+}
+
 unsigned nextFrameDelay(const Frame& frame) {
   if (frame.progress >= 6.0 &&
       (frame.effect == 0 || frame.effect == 1 || frame.effect == 5 || frame.effect == 6)) {
