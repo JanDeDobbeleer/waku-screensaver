@@ -38,7 +38,7 @@ class MazeBuilder {
             art_.rows[static_cast<size_t>(row)][static_cast<size_t>(column)] != L'#')
           continue;
         maze_.cellNode[static_cast<size_t>(row * columns_ + column)] =
-            addNode(column, row, ChaseMaze::kLetter);
+            addNode(column, row, kLetterNode);
       }
     }
     if (maze_.nodes.empty()) return;
@@ -76,8 +76,8 @@ class MazeBuilder {
     return inBounds(x, y) ? grid_[cellIndex(x, y)] : kNoNode;
   }
 
-  bool isLetter(uint32_t node) const { return maze_.nodes[node].kind == ChaseMaze::kLetter; }
-  bool isHouse(uint32_t node) const { return maze_.nodes[node].kind == ChaseMaze::kHouse; }
+  bool isLetter(uint32_t node) const { return maze_.nodes[node].kind == kLetterNode; }
+  bool isHouse(uint32_t node) const { return maze_.nodes[node].kind == kHouseNode; }
 
   // Letters can touch only diagonally, or be separated by gaps. Carve the shortest tunnel from
   // the connected set to the nearest other letter until the whole word is one maze.
@@ -132,7 +132,7 @@ class MazeBuilder {
       if (found == cells) return;
       for (size_t cell = found; cell != cells && grid_[cell] == kNoNode; cell = previous[cell]) {
         addNode(static_cast<int>(cell % static_cast<size_t>(width_)) - kPadX,
-                static_cast<int>(cell / static_cast<size_t>(width_)) - kPadY, ChaseMaze::kTunnel);
+                static_cast<int>(cell / static_cast<size_t>(width_)) - kPadY, kTunnelNode);
       }
     }
   }
@@ -148,7 +148,7 @@ class MazeBuilder {
     const auto at = maze_.nodes[anchor];
     for (int step = 1; step <= kStubLength; ++step) {
       if (!inBounds(at.x + step, at.y) || grid_[cellIndex(at.x + step, at.y)] != kNoNode) break;
-      houseEnd_ = addNode(at.x + step, at.y, ChaseMaze::kHouse);
+      houseEnd_ = addNode(at.x + step, at.y, kHouseNode);
     }
   }
 
@@ -318,7 +318,7 @@ class MazeBuilder {
     std::vector<Edge> edges;
     for (uint32_t node = 0; node < maze_.nodes.size(); ++node) {
       const auto& at = maze_.nodes[node];
-      const bool dim = at.kind != ChaseMaze::kLetter;
+      const bool dim = at.kind != kLetterNode;
       for (size_t d = 0; d < 4; ++d) {
         if (adjacency_[node][d] != kNoNode) continue;
         switch (d) {

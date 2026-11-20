@@ -31,11 +31,12 @@ inline constexpr unsigned kFrameIntervalMs = 33;
 
 inline constexpr uint32_t kNoNode = 0xFFFFFFFFU;
 
+inline constexpr uint8_t kLetterNode = 0;
+inline constexpr uint8_t kTunnelNode = 1;
+inline constexpr uint8_t kHouseNode = 2;
+
 // The word is a maze: letter cells are corridors, carved tunnels join separate letters.
 struct ChaseMaze {
-  static constexpr uint8_t kLetter = 0;
-  static constexpr uint8_t kTunnel = 1;
-  static constexpr uint8_t kHouse = 2;
   struct Node {
     int x;
     int y;

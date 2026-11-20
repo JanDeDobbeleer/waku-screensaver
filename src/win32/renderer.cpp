@@ -77,8 +77,7 @@ void Renderer::drawChase(const ChaseScene& scene, const Art& art, float left, fl
     }
     brush_->SetColor(D2D1::ColorF(1.0f, 0.86f, 0.68f, 0.55f * alpha));
     for (size_t node = 0; node < maze.nodes.size(); ++node) {
-      if (maze.nodes[node].kind != ChaseMaze::kTunnel || maze.eatTime[node] <= scene.cursor)
-        continue;
+      if (maze.nodes[node].kind != kTunnelNode || maze.eatTime[node] <= scene.cursor) continue;
       const float radius = cellWidth * 0.1f;
       target_->FillEllipse(D2D1::Ellipse(pixel(static_cast<float>(maze.nodes[node].x) + 0.5f,
                                                static_cast<float>(maze.nodes[node].y) + 0.5f),

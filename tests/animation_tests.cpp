@@ -77,7 +77,7 @@ int main() {
         if (art.rows[row][column] != L'#') continue;
         ++lit;
         const uint32_t node = maze.cellNode[row * art.columns() + column];
-        check(node != kNoNode && maze.nodes[node].kind == ChaseMaze::kLetter &&
+        check(node != kNoNode && maze.nodes[node].kind == kLetterNode &&
                   maze.nodes[node].x == static_cast<int>(column) &&
                   maze.nodes[node].y == static_cast<int>(row) && std::isfinite(maze.eatTime[node]),
               label);
@@ -103,7 +103,7 @@ int main() {
       const auto& g = maze.nodes[maze.ghostWalk[step]];
       check(std::abs(p.x - g.x) + std::abs(p.y - g.y) >= 2, "ghost never touches pacman");
       if (step < maze.feastSteps)
-        check(maze.nodes[maze.pacWalk[step]].kind != ChaseMaze::kHouse,
+        check(maze.nodes[maze.pacWalk[step]].kind != kHouseNode,
               "pacman never enters the ghost house during the feast");
     }
     check(maze.feastSteps <= 3 * lit, "pacman sweep stays efficient");
@@ -314,7 +314,7 @@ int main() {
   // Dots vanish exactly when pacman arrives.
   const size_t probe = maze.pacWalk.size() / 3;
   const uint32_t probeNode = maze.pacWalk[probe];
-  if (maze.nodes[probeNode].kind == ChaseMaze::kLetter) {
+  if (maze.nodes[probeNode].kind == kLetterNode) {
     const double arrival = (0.5 + maze.eatTime[probeNode] / maze.pacTime[maze.feastSteps] * 5.456) *
                            chaseDuration / kEffectDuration;
     const auto& at = maze.nodes[probeNode];
