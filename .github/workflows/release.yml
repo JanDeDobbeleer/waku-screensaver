@@ -2,24 +2,14 @@ name: release
 
 on:
   push:
-    tags: ["v*"]
-  workflow_dispatch:
-    inputs:
-      version:
-        description: "Version without v, for example 0.1.0"
-        required: true
-        type: string
-      publish:
-        description: "Publish a GitHub release (otherwise only upload signed artifacts)"
-        type: boolean
-        default: false
+    branches: [main]
 
 permissions:
   contents: read
 
 concurrency:
   group: release
-  cancel-in-progress: false
+  queue: max
 
 jobs:
   version:
@@ -28,31 +18,34 @@ jobs:
       tag: ${{ steps.version.outputs.tag }}
       publish: ${{ steps.version.outputs.publish }}
     steps:
-      - name: Validate release version
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Determine release version
         id: version
         shell: pwsh
-        env:
-          INPUT_VERSION: ${{ inputs.version }}
-          INPUT_PUBLISH: ${{ inputs.publish }}
         run: |
-          if ($env:GITHUB_EVENT_NAME -eq 'push') {
-            $version = $env:GITHUB_REF_NAME -replace '^v', ''
-            $publish = 'true'
-          } else {
-            if ($env:GITHUB_REF -ne 'refs/heads/main') {
-              throw 'Manual releases must run from main.'
-            }
-            $version = $env:INPUT_VERSION
-            $publish = $env:INPUT_PUBLISH
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
+          $stableTag = '^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$'
+          if (git tag --points-at $env:GITHUB_SHA | Where-Object { $_ -cmatch $stableTag }) {
+            Write-Host 'This commit already has a version tag.'
+            return
           }
-          if ($version -notmatch '^\d+\.\d+\.\d+$') {
-            throw 'Version must be major.minor.patch.'
-          }
+          $latestTag = @(git tag --list --sort=version:refname |
+            Where-Object { $_ -cmatch $stableTag })[-1]
+          if (-not $latestTag) { $latestTag = 'v0.0.0' }
+          $major, $minor, $patch = $latestTag.Substring(1).Split('.')
+          $version = "$major.$minor.$([long]$patch + 1)"
           "tag=v$version" >> $env:GITHUB_OUTPUT
-          "publish=$publish" >> $env:GITHUB_OUTPUT
+          "publish=true" >> $env:GITHUB_OUTPUT
 
   build:
     needs: version
+    if: needs.version.outputs.tag != ''
     uses: ./.github/workflows/build.yml
     with:
       sign: true
